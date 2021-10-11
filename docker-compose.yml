@@ -1,0 +1,60 @@
+version: '3'
+services:
+  mysql:
+    hostname: laravel_mysql
+    image : mysql:8.0
+    container_name : laravel_mysql
+    env_file: ./Docker/mysql/.env
+    ports:
+      - "33060:3306"
+    volumes :
+      - "./Docker/data/mysql:/var/lib/mysql"
+      - "./Docker/data/mysql/backup:/data/backups"
+    networks:
+      - laravel_network
+  php :
+    hostname: laravel_php
+    build : ./Docker/php
+    container_name : laravel_php
+    restart: unless-stopped
+    ports:
+      - "9200:9000"
+    volumes :
+      - "./web:/var/www"
+    networks:
+      - laravel_network
+  nginx :
+    hostname : laravel_nginx
+    build : ./Docker/nginx
+    container_name : laravel_nginx
+    restart : always
+    ports :
+      - "8200:80"
+    volumes :
+      - "./Docker/nginx/conf.d:/etc/nginx/conf.d/"
+      - "./web:/var/www"
+    links:
+      - php
+    networks :
+      - laravel_network
+  redis:
+    hostname: laravel_redis
+    build: ./Docker/redis
+    container_name: laravel_redis
+    expose:
+      - 63790:6379
+    volumes:
+      - ./Docker/data/redis:/data
+    sysctls:
+      - net.core.somaxconn=511
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    networks:
+      - laravel_network
+networks:
+  laravel_network:
+    driver: bridge
